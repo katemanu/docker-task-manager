@@ -1,0 +1,73 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Task Manager</title>
+    <style>
+        * { margin: 0; padding: 0; box-sizing: border-box; }
+        body { font-family: Arial, sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; padding: 40px 20px; }
+        .container { max-width: 600px; margin: 0 auto; }
+        h1 { text-align: center; margin-bottom: 30px; color: #00d9ff; }
+        .add-task { display: flex; gap: 10px; margin-bottom: 30px; }
+        .add-task input { flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 16px; }
+        .add-task button { padding: 12px 24px; background: #00d9ff; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold; }
+        .add-task button:hover { background: #00b8d9; }
+        .task { background: #16213e; padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; gap: 15px; }
+        .task.completed span { text-decoration: line-through; color: #666; }
+        .task input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
+        .task span { flex: 1; font-size: 16px; }
+        .task button { background: #e74c3c; border: none; padding: 8px 12px; border-radius: 5px; color: white; cursor: pointer; }
+        .task button:hover { background: #c0392b; }
+        .empty { text-align: center; color: #666; padding: 40px; }
+    </style>
+</head>
+<body>
+    <div class="container">
+        <h1>Task Manager</h1>
+        <div class="add-task">
+            <input type="text" id="taskInput" placeholder="Enter a new task..." onkeypress="if(event.key==='Enter')addTask()">
+            <button onclick="addTask()">Add Task</button>
+        </div>
+        <div id="taskList"></div>
+    </div>
+    <script>
+        async function loadTasks() {
+            const res = await fetch('/tasks');
+            const data = await res.json();
+            const list = document.getElementById('taskList');
+            if (data.tasks.length === 0) {
+                list.innerHTML = '<div class="empty">No tasks yet. Add one above!</div>';
+                return;
+            }
+            list.innerHTML = data.tasks.map(task => `
+                <div class="task ${task.completed ? 'completed' : ''}">
+                    <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask(${task.id})">
+                    <span>${task.title}</span>
+                    <button onclick="deleteTask(${task.id})">Delete</button>
+                </div>
+            `).join('');
+        }
+        async function addTask() {
+            const input = document.getElementById('taskInput');
+            if (!input.value.trim()) return;
+            await fetch('/tasks', {
+                method: 'POST',
+                headers: { 'Content-Type': 'application/json' },
+                body: JSON.stringify({ title: input.value })
+            });
+            input.value = '';
+            loadTasks();
+        }
+        async function toggleTask(id) {
+            await fetch(`/tasks/${id}/toggle`, { method: 'PUT' });
+            loadTasks();
+        }
+        async function deleteTask(id) {
+            await fetch(`/tasks/${id}`, { method: 'DELETE' });
+            loadTasks();
+        }
+        loadTasks();
+    </script>
+</body>
+</html>
