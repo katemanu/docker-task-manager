@@ -36,6 +36,9 @@ class Task(Base):
     title = Column(String(200), nullable=False)
     completed = Column(Boolean, default=False)
     user_id = Column(Integer, ForeignKey('users.id'), nullable=False)
+    priority = Column(String(20), default='medium')
+    category = Column(String(50), default='personal')
+    due_date = Column(String(20), nullable=True)
 
 
 # Create tables
@@ -130,7 +133,14 @@ def health():
 def get_tasks():
     session = Session()
     tasks = session.query(Task).filter_by(user_id=current_user.id).all()
-    result = [{"id": t.id, "title": t.title, "completed": t.completed} for t in tasks]
+    result = [{
+        "id": t.id,
+        "title": t.title,
+        "completed": t.completed,
+        "priority": t.priority,
+        "category": t.category,
+        "due_date": t.due_date
+    } for t in tasks]
     session.close()
     return jsonify({"tasks": result})
 
@@ -144,10 +154,23 @@ def create_task():
         return jsonify({"error": "Title is required"}), 400
     
     session = Session()
-    task = Task(title=data['title'], user_id=current_user.id)
+    task = Task(
+        title=data['title'],
+        user_id=current_user.id,
+        priority=data.get('priority', 'medium'),
+        category=data.get('category', 'personal'),
+        due_date=data.get('due_date')
+    )
     session.add(task)
     session.commit()
-    result = {"id": task.id, "title": task.title, "completed": task.completed}
+    result = {
+        "id": task.id,
+        "title": task.title,
+        "completed": task.completed,
+        "priority": task.priority,
+        "category": task.category,
+        "due_date": task.due_date
+    }
     session.close()
     
     return jsonify({"task": result}), 201
@@ -164,7 +187,46 @@ def toggle_task(task_id):
     
     task.completed = not task.completed
     session.commit()
-    result = {"id": task.id, "title": task.title, "completed": task.completed}
+    result = {
+        "id": task.id,
+        "title": task.title,
+        "completed": task.completed,
+        "priority": task.priority,
+        "category": task.category,
+        "due_date": task.due_date
+    }
+    session.close()
+    return jsonify({"task": result})
+
+
+@app.route('/tasks/<int:task_id>', methods=['PUT'])
+@login_required
+def update_task(task_id):
+    data = request.get_json()
+    session = Session()
+    task = session.query(Task).filter_by(id=task_id, user_id=current_user.id).first()
+    if not task:
+        session.close()
+        return jsonify({"error": "Task not found"}), 404
+    
+    if 'title' in data:
+        task.title = data['title']
+    if 'priority' in data:
+        task.priority = data['priority']
+    if 'category' in data:
+        task.category = data['category']
+    if 'due_date' in data:
+        task.due_date = data['due_date']
+    
+    session.commit()
+    result = {
+        "id": task.id,
+        "title": task.title,
+        "completed": task.completed,
+        "priority": task.priority,
+        "category": task.category,
+        "due_date": task.due_date
+    }
     session.close()
     return jsonify({"task": result})
 

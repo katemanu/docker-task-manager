@@ -7,66 +7,124 @@
     <style>
         * { margin: 0; padding: 0; box-sizing: border-box; }
         body { font-family: Arial, sans-serif; background: #1a1a2e; color: #eee; min-height: 100vh; padding: 40px 20px; }
-        .container { max-width: 600px; margin: 0 auto; }
-        h1 { text-align: center; margin-bottom: 30px; color: #00d9ff; }
-        .add-task { display: flex; gap: 10px; margin-bottom: 30px; }
-        .add-task input { flex: 1; padding: 12px; border: none; border-radius: 8px; font-size: 16px; }
-        .add-task button { padding: 12px 24px; background: #00d9ff; border: none; border-radius: 8px; font-size: 16px; cursor: pointer; font-weight: bold; }
+        .container { max-width: 800px; margin: 0 auto; }
+        header { display: flex; justify-content: space-between; align-items: center; margin-bottom: 30px; }
+        h1 { color: #00d9ff; }
+        .logout-btn { background: #e74c3c; border: none; padding: 10px 20px; border-radius: 8px; color: white; cursor: pointer; font-size: 14px; }
+        .logout-btn:hover { background: #c0392b; }
+        .add-task { background: #16213e; padding: 20px; border-radius: 12px; margin-bottom: 30px; }
+        .add-task input, .add-task select { padding: 12px; border: none; border-radius: 8px; font-size: 14px; margin-right: 10px; margin-bottom: 10px; }
+        .add-task input[type="text"] { width: 100%; margin-bottom: 15px; }
+        .add-task .row { display: flex; flex-wrap: wrap; gap: 10px; align-items: center; }
+        .add-task button { padding: 12px 24px; background: #00d9ff; border: none; border-radius: 8px; font-size: 14px; cursor: pointer; font-weight: bold; }
         .add-task button:hover { background: #00b8d9; }
-        .task { background: #16213e; padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; gap: 15px; }
-        .task.completed span { text-decoration: line-through; color: #666; }
+        .filters { display: flex; gap: 10px; margin-bottom: 20px; flex-wrap: wrap; }
+        .filters select { padding: 8px 12px; border: none; border-radius: 8px; font-size: 14px; }
+        .task { background: #16213e; padding: 15px; border-radius: 8px; margin-bottom: 10px; display: flex; align-items: center; gap: 15px; flex-wrap: wrap; }
+        .task.completed .task-title { text-decoration: line-through; color: #666; }
         .task input[type="checkbox"] { width: 20px; height: 20px; cursor: pointer; }
-        .task span { flex: 1; font-size: 16px; }
-        .task button { background: #e74c3c; border: none; padding: 8px 12px; border-radius: 5px; color: white; cursor: pointer; }
+        .task-title { flex: 1; font-size: 16px; min-width: 150px; }
+        .task-meta { display: flex; gap: 10px; align-items: center; flex-wrap: wrap; }
+        .badge { padding: 4px 10px; border-radius: 12px; font-size: 12px; font-weight: bold; }
+        .priority-high { background: #e74c3c; }
+        .priority-medium { background: #f39c12; }
+        .priority-low { background: #27ae60; }
+        .category-badge { background: #3498db; }
+        .due-date { color: #aaa; font-size: 12px; }
+        .due-date.overdue { color: #e74c3c; }
+        .task button { background: #e74c3c; border: none; padding: 8px 12px; border-radius: 5px; color: white; cursor: pointer; font-size: 12px; }
         .task button:hover { background: #c0392b; }
         .empty { text-align: center; color: #666; padding: 40px; }
     </style>
 </head>
 <body>
     <div class="container">
-        <h1>Task Manager</h1>
+        <header>
+            <h1>Task Manager</h1>
+            <button class="logout-btn" onclick="logout()">Logout</button>
+        </header>
         <div class="add-task">
             <input type="text" id="taskInput" placeholder="Enter a new task..." onkeypress="if(event.key==='Enter')addTask()">
-            <button onclick="addTask()">Add Task</button>
+            <div class="row">
+                <select id="priorityInput">
+                    <option value="low">Low Priority</option>
+                    <option value="medium" selected>Medium Priority</option>
+                    <option value="high">High Priority</option>
+                </select>
+                <select id="categoryInput">
+                    <option value="personal">Personal</option>
+                    <option value="work">Work</option>
+                    <option value="shopping">Shopping</option>
+                    <option value="health">Health</option>
+                    <option value="finance">Finance</option>
+                </select>
+                <input type="date" id="dueDateInput">
+                <button onclick="addTask()">Add Task</button>
+            </div>
+        </div>
+        <div class="filters">
+            <select id="filterCategory" onchange="loadTasks()">
+                <option value="">All Categories</option>
+                <option value="personal">Personal</option>
+                <option value="work">Work</option>
+                <option value="shopping">Shopping</option>
+                <option value="health">Health</option>
+                <option value="finance">Finance</option>
+            </select>
+            <select id="filterPriority" onchange="loadTasks()">
+                <option value="">All Priorities</option>
+                <option value="high">High</option>
+                <option value="medium">Medium</option>
+                <option value="low">Low</option>
+            </select>
         </div>
         <div id="taskList"></div>
     </div>
     <script>
         async function loadTasks() {
             const res = await fetch('/tasks');
+            if (res.status === 401) { window.location.href = '/login'; return; }
             const data = await res.json();
             const list = document.getElementById('taskList');
-            if (data.tasks.length === 0) {
-                list.innerHTML = '<div class="empty">No tasks yet. Add one above!</div>';
-                return;
-            }
-            list.innerHTML = data.tasks.map(task => `
-                <div class="task ${task.completed ? 'completed' : ''}">
+            const filterCategory = document.getElementById('filterCategory').value;
+            const filterPriority = document.getElementById('filterPriority').value;
+            let tasks = data.tasks;
+            if (filterCategory) { tasks = tasks.filter(t => t.category === filterCategory); }
+            if (filterPriority) { tasks = tasks.filter(t => t.priority === filterPriority); }
+            if (tasks.length === 0) { list.innerHTML = '<div class="empty">No tasks yet. Add one above!</div>'; return; }
+            const today = new Date().toISOString().split('T')[0];
+            list.innerHTML = tasks.map(task => {
+                const isOverdue = task.due_date && task.due_date < today && !task.completed;
+                return `<div class="task ${task.completed ? 'completed' : ''}">
                     <input type="checkbox" ${task.completed ? 'checked' : ''} onchange="toggleTask(${task.id})">
-                    <span>${task.title}</span>
+                    <span class="task-title">${task.title}</span>
+                    <div class="task-meta">
+                        <span class="badge priority-${task.priority}">${task.priority}</span>
+                        <span class="badge category-badge">${task.category}</span>
+                        ${task.due_date ? `<span class="due-date ${isOverdue ? 'overdue' : ''}">Due: ${task.due_date}</span>` : ''}
+                    </div>
                     <button onclick="deleteTask(${task.id})">Delete</button>
-                </div>
-            `).join('');
+                </div>`;
+            }).join('');
         }
         async function addTask() {
             const input = document.getElementById('taskInput');
+            const priority = document.getElementById('priorityInput').value;
+            const category = document.getElementById('categoryInput').value;
+            const dueDate = document.getElementById('dueDateInput').value;
             if (!input.value.trim()) return;
             await fetch('/tasks', {
                 method: 'POST',
                 headers: { 'Content-Type': 'application/json' },
-                body: JSON.stringify({ title: input.value })
+                body: JSON.stringify({ title: input.value, priority: priority, category: category, due_date: dueDate || null })
             });
             input.value = '';
+            document.getElementById('dueDateInput').value = '';
             loadTasks();
         }
-        async function toggleTask(id) {
-            await fetch(`/tasks/${id}/toggle`, { method: 'PUT' });
-            loadTasks();
-        }
-        async function deleteTask(id) {
-            await fetch(`/tasks/${id}`, { method: 'DELETE' });
-            loadTasks();
-        }
+        async function toggleTask(id) { await fetch(`/tasks/${id}/toggle`, { method: 'PUT' }); loadTasks(); }
+        async function deleteTask(id) { await fetch(`/tasks/${id}`, { method: 'DELETE' }); loadTasks(); }
+        async function logout() { await fetch('/api/logout', { method: 'POST' }); window.location.href = '/login'; }
         loadTasks();
     </script>
 </body>
