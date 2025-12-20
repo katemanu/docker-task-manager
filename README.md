@@ -59,7 +59,7 @@ docker-task-manager/
 ### Run Locally
 ```bash
 # Clone the repository
-git clone https://github.com/katemanu17/docker-task-manager.git
+git clone https://github.com/katemanu/docker-task-manager.git
 cd docker-task-manager
 
 # Start the application
@@ -115,7 +115,7 @@ This application is deployed on AWS EC2 with:
 
 **Kate Manu**
 
-- GitHub: [@katemanu17](https://github.com/katemanu17)
+- GitHub: [@katemanu](https://github.com/katemanu)
 - Website: [katemcompanies.com](https://katemcompanies.com)
 
 ## License
