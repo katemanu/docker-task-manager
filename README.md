@@ -115,7 +115,7 @@ This application is deployed on AWS EC2 with:
 
 **Kate Manu**
 
-- GitHub: [@katemanu17](https://github.com/katemanu17)
+- GitHub: [@katemanu17](https://github.com/katemanu)
 - Website: [katemcompanies.com](https://katemcompanies.com)
 
 ## License
