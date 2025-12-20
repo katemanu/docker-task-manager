@@ -118,6 +118,6 @@ This application is deployed on AWS EC2 with:
 - GitHub: [@katemanu](https://github.com/katemanu)
 - Website: [katemcompanies.com](https://katemcompanies.com)
 
-## License
+## License 
 
 This project is open source and available under the MIT License.
